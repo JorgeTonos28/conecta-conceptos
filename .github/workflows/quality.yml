@@ -31,5 +31,5 @@ jobs:
           set -euo pipefail
           node --check assets/js/facilitator.js
           node --check assets/js/participant.js
-          node --check assets/js/screen.js
+          node --check assets/js/screen.js\n          node --check assets/js/confetti.js
           node --input-type=module --check < assets/js/three-scenes.js
