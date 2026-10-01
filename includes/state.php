@@ -141,6 +141,21 @@ function flatten_concepts(array $pairIds): array
     return $items;
 }
 
+function public_concept_options(array $state): array
+{
+    $pool = flatten_concepts($state['pair_ids']);
+    $used = array_values(array_filter(array_column($state['participants'], 'concept_id')));
+
+    return array_map(
+        static fn($item) => [
+            'id' => $item['id'],
+            'label' => $item['label'],
+            'available' => !in_array($item['id'], $used, true),
+        ],
+        $pool
+    );
+}
+
 function public_state(array $state): array
 {
     $participants = $state['participants'];
@@ -152,6 +167,11 @@ function public_state(array $state): array
         'count' => count($participants),
         'assigned_count' => count($assigned),
         'revealed' => $state['revealed'],
+        'concept_options' => public_concept_options($state),
+        'available_count' => count(array_filter(
+            public_concept_options($state),
+            static fn($item) => !empty($item['available'])
+        )),
     ];
 
     if ($state['revealed']) {
