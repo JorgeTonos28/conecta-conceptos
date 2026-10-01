@@ -1,0 +1,8 @@
+Options -Indexes
+
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+RewriteEngine On
+RewriteRule ^(includes|storage)(/|$) - [F,L]
