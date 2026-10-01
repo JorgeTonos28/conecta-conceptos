@@ -1,6 +1,6 @@
 # Conecta Conceptos
 
-Miniaplicación web para una dinámica presencial de asociación conceptual con **factor sorpresa**.
+Miniaplicación web para una dinámica presencial de asociación conceptual con **factor sorpresa**, diseñada para ejecutarse desde un subdominio en un servidor PHP.
 
 ## Flujo
 
@@ -20,11 +20,14 @@ Miniaplicación web para una dinámica presencial de asociación conceptual con 
 
 ## Requisitos
 
-- PHP 8.0+ (7.4 debería funcionar, pero se recomienda 8.x).
+- PHP 8.0+.
 - Extensión JSON de PHP.
 - Permiso de escritura en `storage/`.
 - HTTPS recomendado.
+- Navegador moderno con WebGL para la capa 3D.
 - No requiere MySQL, Node, npm ni proceso de build.
+
+La interfaz utiliza Three.js desde CDN para los fondos y conexiones 3D. Si Three.js no puede cargarse, la experiencia mantiene un diseño 2D funcional como respaldo.
 
 ## Instalación en el servidor
 
@@ -69,15 +72,19 @@ Usa la contraseña configurada en `.env`.
 
 Desde el panel puedes:
 
-- elegir 2, 4, 6, 8 o 10 participantes;
-- seleccionar los pares conceptuales;
-- iniciar una experiencia limpia;
+- definir 2, 4, 6, 8 o 10 participantes;
+- marcar y desmarcar los pares conceptuales sin que el refresco en vivo revierta tu selección;
+- usar **Sugerir pares** para obtener una selección rápida;
+- restaurar la configuración activa;
+- aplicar una configuración nueva sólo cuando estés listo;
 - ver participantes registrados;
 - ocultar o mostrar conceptos únicamente en tu panel;
 - eliminar una entrada accidental;
 - abrir la pantalla de proyección;
 - revelar las conexiones;
 - reiniciar para volver a ensayar.
+
+La cantidad de participantes debe ser par porque cada comunidad nace de un par conceptual.
 
 ## Conceptos incluidos
 
@@ -94,6 +101,19 @@ Cada pareja tiene un nombre que sólo se muestra en la revelación final.
 El estado se guarda en un archivo JSON con bloqueo de archivo (`flock`) para evitar asignaciones duplicadas cuando varias personas interactúan a la vez.
 
 El archivo de estado NO se versiona en Git.
+
+## Diseño y animación
+
+La experiencia incorpora:
+
+- tarjetas con profundidad y animación 3D;
+- fondos WebGL con Three.js;
+- partículas, nodos y planos flotantes;
+- animación de convergencia al revelar conexiones;
+- parallax suave según el movimiento del puntero;
+- transiciones escalonadas;
+- soporte de `prefers-reduced-motion`;
+- fallback visual si WebGL o Three.js no están disponibles.
 
 ## QR
 
@@ -114,7 +134,9 @@ Antes de la práctica:
 
 1. Abre `/pantalla.php` en la computadora que proyectarás.
 2. Abre `/facilitador/` en otra pestaña.
-3. Reinicia con 6 participantes y tres pares.
-4. Prueba el flujo desde varios teléfonos.
-5. Verifica la revelación.
-6. Reinicia y deja la experiencia limpia.
+3. Selecciona 6 participantes y tres pares.
+4. Pulsa **Aplicar configuración e iniciar**.
+5. Prueba el flujo desde varios teléfonos.
+6. Verifica las tarjetas, pistas y persistencia al recargar.
+7. Ejecuta **Revelar conexiones**.
+8. Reinicia y deja la experiencia limpia para la clase.
