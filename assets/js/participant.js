@@ -287,35 +287,74 @@
     card.style.visibility = '';
   }
 
-  function animateConceptReveal() {
+  function conceptRevealNodes() {
+    return {
+      conceptCard:conceptView.querySelector('.concept-card'),
+      kicker:conceptView.querySelector('.concept-kicker'),
+      label:document.getElementById('conceptLabel'),
+      hint:conceptView.querySelector('.hint-box'),
+      mission:conceptView.querySelector('.mission-card'),
+      name:conceptView.querySelector('.participant-name')
+    };
+  }
+
+  function prepareConceptReveal() {
     if (reducedMotion) return;
 
-    const conceptCard = conceptView.querySelector('.concept-card');
-    const kicker = conceptView.querySelector('.concept-kicker');
-    const label = document.getElementById('conceptLabel');
-    const hint = conceptView.querySelector('.hint-box');
-    const mission = conceptView.querySelector('.mission-card');
-    const name = conceptView.querySelector('.participant-name');
+    const {conceptCard,kicker,label,hint,mission,name} = conceptRevealNodes();
 
-    conceptCard?.animate([
+    // Keep the destination content hidden while the panel itself transitions in.
+    // This prevents the "show → disappear → show again" flash.
+    [conceptCard,kicker,label,hint,mission,name].forEach(node => {
+      if (!node) return;
+      node.getAnimations().forEach(animation => animation.cancel());
+      node.style.opacity = '0';
+      node.style.visibility = 'hidden';
+    });
+  }
+
+  function animateConceptReveal() {
+    const {conceptCard,kicker,label,hint,mission,name} = conceptRevealNodes();
+
+    if (reducedMotion) {
+      [conceptCard,kicker,label,hint,mission,name].forEach(node => {
+        if (!node) return;
+        node.style.opacity = '';
+        node.style.visibility = '';
+      });
+      window.dispatchEvent(new CustomEvent('concept:revealed'));
+      return;
+    }
+
+    [conceptCard,kicker,label,hint,mission,name].forEach(node => {
+      if (!node) return;
+      node.style.visibility = 'visible';
+    });
+
+    const cardAnimation = conceptCard?.animate([
       {opacity:0, transform:'perspective(900px) translate3d(0,28px,-100px) rotateX(16deg) scale(.88)', filter:'blur(8px)'},
       {opacity:1, transform:'perspective(900px) translate3d(0,-4px,18px) rotateX(-2deg) scale(1.02)', filter:'blur(0px)', offset:.82},
       {opacity:1, transform:'perspective(900px) translate3d(0,0,0) rotateX(0deg) scale(1)', filter:'blur(0px)'}
     ], {
       duration:760,
-      easing:'cubic-bezier(.16,1,.3,1)'
+      easing:'cubic-bezier(.16,1,.3,1)',
+      fill:'forwards'
     });
 
+    if (conceptCard) conceptCard.style.opacity = '';
+
     const staged = [
-      [name, 80],
-      [kicker, 170],
-      [label, 250],
-      [hint, 390],
-      [mission, 540]
+      [name, 40],
+      [kicker, 120],
+      [label, 205],
+      [hint, 335],
+      [mission, 475]
     ];
 
     staged.forEach(([node, delay], index) => {
       if (!node?.animate) return;
+
+      node.style.opacity = '';
       node.animate([
         {
           opacity:0,
@@ -334,14 +373,21 @@
           transform:'translate3d(0,0,0) scale(1)'
         }
       ], {
-        duration:index === 2 ? 720 : 500,
+        duration:index === 2 ? 680 : 460,
         delay,
         easing:'cubic-bezier(.16,1,.3,1)',
         fill:'both'
       });
     });
 
-    setTimeout(() => window.dispatchEvent(new CustomEvent('concept:revealed')), 240);
+    cardAnimation?.finished.finally(() => {
+      if (conceptCard) {
+        conceptCard.style.opacity = '';
+        conceptCard.style.visibility = '';
+      }
+    });
+
+    setTimeout(() => window.dispatchEvent(new CustomEvent('concept:revealed')), 180);
   }
 
   async function showConcept(participant, animated = true) {
@@ -350,9 +396,16 @@
     document.getElementById('conceptHint').textContent = participant.hint || '';
 
     if (animated) {
+      prepareConceptReveal();
       await transitionTo(conceptView, 'forward');
       animateConceptReveal();
     } else {
+      const {conceptCard,kicker,label,hint,mission,name} = conceptRevealNodes();
+      [conceptCard,kicker,label,hint,mission,name].forEach(node => {
+        if (!node) return;
+        node.style.opacity = '';
+        node.style.visibility = '';
+      });
       setViewImmediate(conceptView);
     }
   }
