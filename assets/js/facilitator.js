@@ -109,11 +109,12 @@
 
     tableEl.innerHTML = state.participants.map((p, i) => {
       const concept = showConcepts.checked ? (p.concept_label || 'Sin elegir') : (p.concept_id ? 'Concepto oculto' : 'Sin elegir');
+      const conceptClass = showConcepts.checked && p.concept_id ? 'concept-pill visible' : 'concept-pill';
       const stateClass = p.concept_id ? 'ready' : 'waiting';
       return '<div class="participant-row">' +
         '<span class="row-number">' + String(i + 1).padStart(2, '0') + '</span>' +
         '<div class="participant-meta"><strong>' + escapeHtml(p.name) + '</strong><small class="' + stateClass + '">' + (p.concept_id ? 'Tarjeta revelada' : 'Eligiendo tarjeta') + '</small></div>' +
-        '<span class="row-concept">' + escapeHtml(concept) + '</span>' +
+        '<span class="row-concept"><span class="' + conceptClass + '">' + escapeHtml(concept) + '</span></span>' +
         '<button class="remove-button" type="button" data-id="' + escapeHtml(p.id) + '"' + (state.revealed ? ' disabled' : '') + '>Eliminar</button>' +
       '</div>';
     }).join('');
@@ -193,7 +194,10 @@
     updateSetupValidation();
   });
 
-  showConcepts.addEventListener('change', () => latest && render(latest));
+  showConcepts.addEventListener('change', () => {
+    if (latest) render(latest);
+    showConcepts.closest('.toggle-line')?.classList.toggle('is-on', showConcepts.checked);
+  });
   targetSelect.addEventListener('change', updateSetupValidation);
   pairOptions.forEach(cb => cb.addEventListener('change', updateSetupValidation));
 
