@@ -11,7 +11,7 @@ $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=14&dat
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#07192D">
     <title>Una conexión inesperada — Pantalla</title>
-    <link rel="stylesheet" href="assets/css/app.css">
+    <link rel="stylesheet" href="assets/css/app.css?v=<?= filemtime(__DIR__ . '/assets/css/app.css') ?>">
 </head>
 <body class="screen-page">
 <canvas class="three-backdrop" data-three-scene="screen" aria-hidden="true"></canvas>
@@ -63,7 +63,7 @@ $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=14&dat
     </section>
 </main>
 
-<script src="assets/js/screen.js"></script>
-<script type="module" src="assets/js/three-scenes.js"></script>
+<script src="assets/js/screen.js?v=<?= filemtime(__DIR__ . '/assets/js/screen.js') ?>"></script>
+<script type="module" src="assets/js/three-scenes.js?v=<?= filemtime(__DIR__ . '/assets/js/three-scenes.js') ?>"></script>
 </body>
 </html>
