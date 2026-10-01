@@ -15,17 +15,39 @@
     (groups || []).forEach((group, groupIndex) => {
       const card = document.createElement('article');
       card.className = 'connection-card';
-      card.style.setProperty('--delay', (groupIndex * 120) + 'ms');
+      card.style.setProperty('--delay', (groupIndex * 170) + 'ms');
 
       const members = (group.members || []).map((m, index) =>
-        '<div class="connection-member"><strong>' + escapeHtml(m.concept) + '</strong><span>' + escapeHtml(m.name) + '</span></div>' +
+        '<div class="connection-member">' +
+          '<div><small>' + (index === 0 ? 'CONCEPTO A' : 'CONCEPTO B') + '</small><strong>' + escapeHtml(m.concept) + '</strong></div>' +
+          '<span>' + escapeHtml(m.name) + '</span>' +
+        '</div>' +
         (index === 0 ? '<div class="connection-line"><span></span><i>+</i><span></span></div>' : '')
       ).join('');
 
-      card.innerHTML = '<small>CONEXIÓN ' + String(groupIndex + 1).padStart(2, '0') + '</small>' +
-        '<h3>' + escapeHtml(group.name) + '</h3><div class="connection-members">' + members + '</div>';
+      card.innerHTML =
+        '<div class="connection-card-head"><small>CONEXIÓN ' + String(groupIndex + 1).padStart(2, '0') + '</small><span>●</span></div>' +
+        '<h3>' + escapeHtml(group.name) + '</h3>' +
+        '<div class="connection-members">' + members + '</div>';
+
       grid.appendChild(card);
     });
+  }
+
+  function showWaiting() {
+    revealed.hidden = true;
+    waiting.hidden = false;
+    waiting.classList.add('is-active');
+    revealed.classList.remove('is-active');
+  }
+
+  function showReveal(groups) {
+    renderGroups(groups);
+    waiting.hidden = true;
+    revealed.hidden = false;
+    waiting.classList.remove('is-active');
+    revealed.classList.add('is-active');
+    requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('connections:revealed')));
   }
 
   async function refresh() {
@@ -34,24 +56,22 @@
       const data = await response.json();
       if (!data.ok) return;
       const state = data.state;
+
       count.textContent = state.count;
       target.textContent = state.target;
 
-      if (state.revealed) {
-        if (!lastRevealed) {
-          renderGroups(state.groups);
-          waiting.hidden = true;
-          revealed.hidden = false;
-          lastRevealed = true;
-        }
-      } else if (lastRevealed) {
-        revealed.hidden = true;
-        waiting.hidden = false;
+      if (state.revealed && !lastRevealed) {
+        showReveal(state.groups);
+        lastRevealed = true;
+      } else if (!state.revealed && lastRevealed) {
+        showWaiting();
+        window.dispatchEvent(new CustomEvent('experience:reset'));
         lastRevealed = false;
       }
     } catch {}
   }
 
+  showWaiting();
   refresh();
-  setInterval(refresh, 1000);
+  setInterval(refresh, 900);
 })();
