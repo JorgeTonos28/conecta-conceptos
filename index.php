@@ -33,17 +33,18 @@ require_once __DIR__ . '/includes/config.php';
     </section>
 
     <section id="cardView" class="panel participant-panel card-stage-panel" hidden>
-        <p class="eyebrow">ELIGE POR INTUICIÓN</p>
-        <h2>Escoge una tarjeta</h2>
-        <p class="lead">No hay respuestas correctas. Elige la que más te llame la atención.</p>
+        <p class="eyebrow">ELIGE POR AFINIDAD</p>
+        <h2>¿Con cuál concepto te identificas más?</h2>
+        <p class="lead">Elige uno de los conceptos disponibles. Cada concepto tiene un solo cupo y, cuando alguien lo elige, deja de estar disponible para los demás.</p>
 
-        <div class="card-choice-grid" id="cardChoices" aria-label="Tarjetas disponibles">
-            <button class="mystery-card card-a" type="button" aria-label="Tarjeta 1"><span class="card-face">?</span></button>
-            <button class="mystery-card card-b" type="button" aria-label="Tarjeta 2"><span class="card-face">?</span></button>
-            <button class="mystery-card card-c" type="button" aria-label="Tarjeta 3"><span class="card-face">?</span></button>
-            <button class="mystery-card card-d" type="button" aria-label="Tarjeta 4"><span class="card-face">?</span></button>
+        <div class="availability-strip" aria-live="polite">
+            <span>Disponibles ahora</span>
+            <strong id="availableCount">—</strong>
         </div>
-        <p class="microcopy">Tu elección no se puede cambiar después de revelar la tarjeta.</p>
+
+        <div class="card-choice-grid concept-choice-grid" id="cardChoices" aria-label="Conceptos disponibles"></div>
+
+        <p class="microcopy">Los cupos se actualizan en tiempo real. Una vez confirmada tu elección, no podrás cambiarla.</p>
         <p id="cardError" class="error-message" hidden></p>
     </section>
 
