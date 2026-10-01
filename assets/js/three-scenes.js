@@ -15,227 +15,301 @@ if (canvas) {
 
 function initThreeExperience(THREE, canvas, reducedMotion) {
   const mode = canvas.dataset.threeScene || 'participant';
-  const renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true, powerPreference:'high-performance'});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
+  const isScreen = mode === 'screen';
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    alpha:true,
+    antialias:true,
+    powerPreference:'high-performance'
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isScreen ? 1.75 : 1.55));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = isScreen ? 1.18 : 1.08;
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(mode === 'screen' ? 54 : 58, 1, 0.1, 100);
-  camera.position.set(0, 0, mode === 'screen' ? 8.4 : 7.2);
+  const camera = new THREE.PerspectiveCamera(isScreen ? 48 : 54, 1, 0.1, 100);
+  camera.position.set(0, 0, isScreen ? 9.2 : 7.8);
 
-  const root = new THREE.Group();
-  scene.add(root);
+  const world = new THREE.Group();
+  scene.add(world);
 
-  const ambient = new THREE.AmbientLight(0xffffff, 1.4);
-  scene.add(ambient);
+  const floatGroup = new THREE.Group();
+  const nodeGroup = new THREE.Group();
+  world.add(floatGroup, nodeGroup);
 
-  const key = new THREE.DirectionalLight(0xffd47a, 2.1);
-  key.position.set(4, 5, 7);
-  scene.add(key);
+  scene.add(new THREE.AmbientLight(0xffffff, isScreen ? 1.2 : 1.4));
 
-  const rim = new THREE.PointLight(0x5c9e3a, 18, 14, 2);
-  rim.position.set(-4, -2, 4);
-  scene.add(rim);
+  const warm = new THREE.DirectionalLight(0xffc85a, isScreen ? 3.4 : 2.2);
+  warm.position.set(5, 5, 6);
+  scene.add(warm);
 
-  const blueLight = new THREE.PointLight(0x5f9ed8, 16, 14, 2);
-  blueLight.position.set(4, 1, 3);
-  scene.add(blueLight);
+  const blue = new THREE.PointLight(0x3f8fd8, isScreen ? 38 : 20, 22, 2);
+  blue.position.set(-4, 2.5, 4);
+  scene.add(blue);
 
-  const palette = [0x123a6d, 0xf2a900, 0x5c9e3a, 0x6a8fb7];
-  const cards = [];
-  const cardCount = mode === 'screen' ? 11 : 8;
+  const green = new THREE.PointLight(0x6caf48, isScreen ? 24 : 14, 18, 2);
+  green.position.set(4, -2.5, 3);
+  scene.add(green);
 
-  for (let i = 0; i < cardCount; i++) {
-    const geometry = new THREE.PlaneGeometry(1.15 + (i % 3) * 0.11, 0.7 + (i % 2) * 0.08, 1, 1);
-    const material = new THREE.MeshPhysicalMaterial({
-      color: palette[i % palette.length],
-      transparent: true,
-      opacity: mode === 'screen' ? 0.12 : 0.16,
-      roughness: 0.2,
-      metalness: 0.1,
-      clearcoat: 0.85,
-      clearcoatRoughness: 0.25,
-      side: THREE.DoubleSide,
-      depthWrite: false
-    });
+  const orange = new THREE.PointLight(0xf2a900, isScreen ? 30 : 16, 18, 2);
+  orange.position.set(2.5, 4, 2);
+  scene.add(orange);
 
-    const card = new THREE.Mesh(geometry, material);
-    card.position.set(
-      (Math.random() - 0.5) * (mode === 'screen' ? 12 : 7.5),
-      (Math.random() - 0.5) * (mode === 'screen' ? 6.5 : 8.5),
-      -1.5 - Math.random() * 4.5
-    );
-    card.rotation.set(
-      (Math.random() - 0.5) * 0.7,
-      (Math.random() - 0.5) * 0.9,
-      (Math.random() - 0.5) * 0.5
-    );
-    card.userData = {
-      baseY: card.position.y,
-      speed: 0.3 + Math.random() * 0.45,
-      offset: Math.random() * Math.PI * 2
+  const palette = [
+    {color:0x174a82, emissive:0x0b2341},
+    {color:0xf2a900, emissive:0x6f4900},
+    {color:0x5c9e3a, emissive:0x244715},
+    {color:0x6d9bc3, emissive:0x173b59},
+  ];
+
+  const floatingObjects = [];
+
+  function addFloatingMesh(mesh, config = {}) {
+    mesh.position.set(config.x ?? 0, config.y ?? 0, config.z ?? -2);
+    mesh.rotation.set(config.rx ?? 0, config.ry ?? 0, config.rz ?? 0);
+    mesh.userData = {
+      basePosition:mesh.position.clone(),
+      baseRotation:mesh.rotation.clone(),
+      ampX:config.ampX ?? 0.18,
+      ampY:config.ampY ?? 0.24,
+      ampR:config.ampR ?? 0.15,
+      speed:config.speed ?? 0.35,
+      offset:config.offset ?? Math.random() * Math.PI * 2
     };
+    floatingObjects.push(mesh);
+    floatGroup.add(mesh);
+  }
+
+  function physicalMaterial(index, opacity = 1) {
+    const p = palette[index % palette.length];
+    return new THREE.MeshPhysicalMaterial({
+      color:p.color,
+      emissive:p.emissive,
+      emissiveIntensity:isScreen ? 0.48 : 0.28,
+      metalness:isScreen ? 0.34 : 0.2,
+      roughness:0.2,
+      clearcoat:1,
+      clearcoatRoughness:0.16,
+      transparent:opacity < 1,
+      opacity,
+      side:THREE.DoubleSide
+    });
+  }
+
+  const cardPositions = isScreen ? [
+    [-4.7, 2.8, -2.1, -0.35, 0.45, -0.1],
+    [-2.5,-2.7, -3.2,  0.22,-0.42,  0.25],
+    [ 0.7, 3.4, -3.9, -0.25, 0.3,  0.08],
+    [ 2.0,-2.8, -2.5,  0.4, -0.38, -0.12],
+    [ 4.9, 2.4, -3.4, -0.2, -0.48,  0.3],
+    [ 5.2,-1.0, -5.2,  0.3,  0.35, -0.2],
+    [-5.2,-0.6, -5.3, -0.1, -0.32, 0.18],
+  ] : [
+    [-2.9, 3.0, -3.2, -0.3, 0.4, -0.1],
+    [ 2.8, 2.4, -4.0,  0.24,-0.36, 0.2],
+    [-2.4,-2.8, -4.4,  0.3, 0.28, -0.2],
+    [ 2.7,-2.6, -3.5, -0.24,-0.34, 0.15],
+  ];
+
+  cardPositions.forEach((p, index) => {
+    const w = isScreen ? 1.65 + (index % 2) * 0.35 : 1.35 + (index % 2) * 0.22;
+    const h = isScreen ? 1.0 : 0.82;
+    const d = isScreen ? 0.18 : 0.14;
+    const box = new THREE.Mesh(
+      new THREE.BoxGeometry(w,h,d,2,2,1),
+      physicalMaterial(index, isScreen ? 0.78 : 0.55)
+    );
 
     const edges = new THREE.LineSegments(
-      new THREE.EdgesGeometry(geometry),
-      new THREE.LineBasicMaterial({color:0xffffff, transparent:true, opacity:0.22})
+      new THREE.EdgesGeometry(box.geometry),
+      new THREE.LineBasicMaterial({
+        color:0xffffff,
+        transparent:true,
+        opacity:isScreen ? 0.42 : 0.26
+      })
     );
-    card.add(edges);
-    root.add(card);
-    cards.push(card);
-  }
+    box.add(edges);
+
+    addFloatingMesh(box,{
+      x:p[0],y:p[1],z:p[2],rx:p[3],ry:p[4],rz:p[5],
+      ampX:0.12 + (index%3)*0.04,
+      ampY:0.18 + (index%2)*0.07,
+      ampR:0.11,
+      speed:0.28 + index*0.035,
+      offset:index*.9
+    });
+  });
+
+  const accentShapes = [
+    new THREE.Mesh(new THREE.TorusGeometry(isScreen ? .72 : .55, .12, 22, 72), physicalMaterial(1,.78)),
+    new THREE.Mesh(new THREE.IcosahedronGeometry(isScreen ? .58 : .42,2), physicalMaterial(2,.82)),
+    new THREE.Mesh(new THREE.OctahedronGeometry(isScreen ? .46 : .34,1), physicalMaterial(0,.86)),
+    new THREE.Mesh(new THREE.TorusKnotGeometry(isScreen ? .38 : .28,.095,80,12,2,3), physicalMaterial(3,.72))
+  ];
+
+  const accentConfigs = isScreen ? [
+    {x:5.4,y:3.6,z:-2.2,rx:.5,ry:.3,rz:.1,ampY:.24,speed:.32},
+    {x:-4.8,y:-3.2,z:-1.8,rx:.4,ry:.2,rz:.2,ampY:.22,speed:.38},
+    {x:3.9,y:-3.5,z:-4.1,rx:.1,ry:.4,rz:.3,ampY:.28,speed:.29},
+    {x:-1.0,y:3.9,z:-4.8,rx:.5,ry:.1,rz:.2,ampY:.18,speed:.34}
+  ] : [
+    {x:2.7,y:3.5,z:-2.6,rx:.4,ry:.2,rz:.1,ampY:.18,speed:.33},
+    {x:-2.9,y:-3.2,z:-2.2,rx:.3,ry:.2,rz:.2,ampY:.2,speed:.36},
+    {x:3.1,y:-2.5,z:-4.2,rx:.2,ry:.4,rz:.2,ampY:.2,speed:.3},
+    {x:-2.2,y:2.7,z:-4.6,rx:.4,ry:.1,rz:.1,ampY:.16,speed:.34}
+  ];
+
+  accentShapes.forEach((mesh,index) => addFloatingMesh(mesh,{...accentConfigs[index],offset:index*1.2}));
 
   const particlesGeometry = new THREE.BufferGeometry();
-  const particleCount = mode === 'screen' ? 150 : 90;
+  const particleCount = isScreen ? 210 : 110;
   const particlePositions = new Float32Array(particleCount * 3);
 
-  for (let i = 0; i < particleCount; i++) {
-    particlePositions[i * 3] = (Math.random() - 0.5) * 16;
-    particlePositions[i * 3 + 1] = (Math.random() - 0.5) * 10;
-    particlePositions[i * 3 + 2] = -Math.random() * 8;
+  for (let i=0;i<particleCount;i++) {
+    particlePositions[i*3]=(Math.random()-.5)*(isScreen?17:10);
+    particlePositions[i*3+1]=(Math.random()-.5)*(isScreen?10:11);
+    particlePositions[i*3+2]=-Math.random()*9;
   }
 
-  particlesGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-  const particles = new THREE.Points(
+  particlesGeometry.setAttribute('position',new THREE.BufferAttribute(particlePositions,3));
+  const particles=new THREE.Points(
     particlesGeometry,
     new THREE.PointsMaterial({
-      color: mode === 'screen' ? 0x9bc2e6 : 0x577c9e,
-      size: mode === 'screen' ? 0.045 : 0.035,
+      color:isScreen?0xa6c8e8:0x51789d,
+      size:isScreen?.052:.038,
       transparent:true,
-      opacity:0.65,
+      opacity:isScreen?.72:.46,
       sizeAttenuation:true
     })
   );
-  scene.add(particles);
+  world.add(particles);
 
-  const nodeGroup = new THREE.Group();
-  scene.add(nodeGroup);
-  const nodePalette = [0xf2a900,0x5c9e3a,0x8bb8df,0xf2a900,0x5c9e3a,0x8bb8df];
-  const nodes = [];
-  const lines = [];
+  const nodePalette=[0xf2a900,0x5c9e3a,0x74a6d2,0xf2a900,0x5c9e3a,0x74a6d2];
+  const nodes=[];
+  const lines=[];
 
-  for (let i = 0; i < 6; i++) {
-    const node = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(mode === 'screen' ? 0.16 : 0.12, 1),
-      new THREE.MeshStandardMaterial({
+  for(let i=0;i<6;i++) {
+    const node=new THREE.Mesh(
+      new THREE.SphereGeometry(isScreen?.18:.13,32,32),
+      new THREE.MeshPhysicalMaterial({
         color:nodePalette[i],
         emissive:nodePalette[i],
-        emissiveIntensity:0.6,
-        roughness:0.24,
-        metalness:0.18
+        emissiveIntensity:.9,
+        clearcoat:1,
+        clearcoatRoughness:.08,
+        metalness:.28,
+        roughness:.18
       })
     );
-    const angle = (i / 6) * Math.PI * 2;
-    node.position.set(Math.cos(angle) * 3.4, Math.sin(angle) * 2.2, -0.8 - (i % 2) * 0.6);
-    node.userData.start = node.position.clone();
+    const angle=(i/6)*Math.PI*2;
+    node.position.set(Math.cos(angle)*(isScreen?4.2:3.2),Math.sin(angle)*(isScreen?2.7:2.2),-1.0-(i%2)*.8);
+    node.userData.start=node.position.clone();
     nodes.push(node);
     nodeGroup.add(node);
   }
 
-  for (let i = 0; i < 3; i++) {
-    const geometry = new THREE.BufferGeometry().setFromPoints([nodes[i*2].position, nodes[i*2+1].position]);
-    const line = new THREE.Line(
+  for(let i=0;i<3;i++) {
+    const geometry=new THREE.BufferGeometry().setFromPoints([nodes[i*2].position,nodes[i*2+1].position]);
+    const line=new THREE.Line(
       geometry,
-      new THREE.LineBasicMaterial({color:0xffffff, transparent:true, opacity:0.18})
+      new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.2})
     );
     lines.push(line);
     nodeGroup.add(line);
   }
 
-  const targetPairs = [
-    [new THREE.Vector3(-3.1,1.4,-0.6), new THREE.Vector3(-1.9,1.4,-0.6)],
-    [new THREE.Vector3(-0.6,-0.1,-0.9), new THREE.Vector3(0.6,-0.1,-0.9)],
-    [new THREE.Vector3(1.9,-1.6,-0.7), new THREE.Vector3(3.1,-1.6,-0.7)]
+  const targetPairs=isScreen?[
+    [new THREE.Vector3(-4.0,1.8,-.5),new THREE.Vector3(-2.3,1.8,-.5)],
+    [new THREE.Vector3(-.85,-.05,-.65),new THREE.Vector3(.85,-.05,-.65)],
+    [new THREE.Vector3(2.3,-1.9,-.55),new THREE.Vector3(4.0,-1.9,-.55)]
+  ]:[
+    [new THREE.Vector3(-2.5,1.3,-.6),new THREE.Vector3(-1.25,1.3,-.6)],
+    [new THREE.Vector3(-.62,-.1,-.8),new THREE.Vector3(.62,-.1,-.8)],
+    [new THREE.Vector3(1.25,-1.5,-.65),new THREE.Vector3(2.5,-1.5,-.65)]
   ];
 
-  let revealTarget = 0;
-  let revealProgress = 0;
-  let conceptPulse = 0;
-  let pointerX = 0;
-  let pointerY = 0;
+  let revealTarget=0;
+  let revealProgress=0;
+  let conceptPulse=0;
+  let pointerX=0;
+  let pointerY=0;
 
-  window.addEventListener('connections:revealed', () => {
-    revealTarget = 1;
-    conceptPulse = 1;
-  });
+  window.addEventListener('connections:revealed',()=>{revealTarget=1;conceptPulse=1});
+  window.addEventListener('experience:reset',()=>{revealTarget=0});
+  window.addEventListener('concept:revealed',()=>{conceptPulse=1});
 
-  window.addEventListener('experience:reset', () => {
-    revealTarget = 0;
-  });
-
-  window.addEventListener('concept:revealed', () => {
-    conceptPulse = 1;
-  });
-
-  window.addEventListener('pointermove', event => {
-    pointerX = (event.clientX / Math.max(window.innerWidth, 1) - 0.5) * 2;
-    pointerY = (event.clientY / Math.max(window.innerHeight, 1) - 0.5) * 2;
-  }, {passive:true});
+  window.addEventListener('pointermove',event=>{
+    pointerX=(event.clientX/Math.max(window.innerWidth,1)-.5)*2;
+    pointerY=(event.clientY/Math.max(window.innerHeight,1)-.5)*2;
+  },{passive:true});
 
   function resize() {
-    const rect = canvas.getBoundingClientRect();
-    const width = Math.max(rect.width, 1);
-    const height = Math.max(rect.height, 1);
-    renderer.setSize(width, height, false);
-    camera.aspect = width / height;
+    const rect=canvas.getBoundingClientRect();
+    const width=Math.max(rect.width,1);
+    const height=Math.max(rect.height,1);
+    renderer.setSize(width,height,false);
+    camera.aspect=width/height;
     camera.updateProjectionMatrix();
   }
 
-  const observer = new ResizeObserver(resize);
+  const observer=new ResizeObserver(resize);
   observer.observe(canvas);
   resize();
 
-  const clock = new THREE.Clock();
+  const clock=new THREE.Clock();
 
-  function frame() {
-    const t = clock.getElapsedTime();
+  function renderFrame() {
+    const t=clock.getElapsedTime();
 
-    if (!reducedMotion) {
-      root.rotation.y += ((pointerX * 0.08) - root.rotation.y) * 0.02;
-      root.rotation.x += ((-pointerY * 0.04) - root.rotation.x) * 0.02;
-      particles.rotation.y = t * 0.018;
-      particles.rotation.x = Math.sin(t * 0.15) * 0.04;
+    if(!reducedMotion) {
+      floatGroup.rotation.y+=((pointerX*.11)-floatGroup.rotation.y)*.018;
+      floatGroup.rotation.x+=((-pointerY*.055)-floatGroup.rotation.x)*.018;
 
-      cards.forEach((card, index) => {
-        card.position.y = card.userData.baseY + Math.sin(t * card.userData.speed + card.userData.offset) * 0.22;
-        card.rotation.z += Math.sin(t * 0.25 + index) * 0.0008;
+      floatingObjects.forEach((mesh,index)=>{
+        const d=mesh.userData;
+        mesh.position.x=d.basePosition.x+Math.sin(t*d.speed*.72+d.offset)*d.ampX;
+        mesh.position.y=d.basePosition.y+Math.sin(t*d.speed+d.offset)*d.ampY;
+        mesh.rotation.x=d.baseRotation.x+Math.sin(t*d.speed*.6+d.offset)*d.ampR;
+        mesh.rotation.y=d.baseRotation.y+Math.cos(t*d.speed*.52+d.offset)*d.ampR*1.45;
+        mesh.rotation.z=d.baseRotation.z+Math.sin(t*d.speed*.43+d.offset)*d.ampR*.55;
       });
 
-      revealProgress += (revealTarget - revealProgress) * 0.035;
-      conceptPulse *= 0.965;
+      particles.rotation.y=t*.018;
+      particles.rotation.x=Math.sin(t*.13)*.045;
+
+      revealProgress+=(revealTarget-revealProgress)*.04;
+      conceptPulse*=.955;
+
+      world.position.y=Math.sin(t*.28)*(isScreen?.07:.04);
     } else {
-      revealProgress = revealTarget;
-      conceptPulse = 0;
+      revealProgress=revealTarget;
+      conceptPulse=0;
     }
 
-    nodes.forEach((node, index) => {
-      const pairIndex = Math.floor(index / 2);
-      const pairSide = index % 2;
-      const target = targetPairs[pairIndex][pairSide];
-      node.position.lerpVectors(node.userData.start, target, revealProgress);
-      const pulse = 1 + Math.sin(t * 3 + index) * 0.08 + conceptPulse * 0.28;
+    nodes.forEach((node,index)=>{
+      const pairIndex=Math.floor(index/2);
+      const pairSide=index%2;
+      const target=targetPairs[pairIndex][pairSide];
+      node.position.lerpVectors(node.userData.start,target,revealProgress);
+
+      const pulse=1+Math.sin(t*2.7+index)*.07+conceptPulse*.28;
       node.scale.setScalar(pulse);
     });
 
-    lines.forEach((line, index) => {
-      line.geometry.setFromPoints([nodes[index*2].position, nodes[index*2+1].position]);
-      line.material.opacity = 0.14 + revealProgress * 0.48;
+    lines.forEach((line,index)=>{
+      line.geometry.setFromPoints([nodes[index*2].position,nodes[index*2+1].position]);
+      line.material.opacity=.16+revealProgress*.62;
     });
 
-    camera.position.x += (pointerX * 0.18 - camera.position.x) * 0.018;
-    camera.position.y += (-pointerY * 0.12 - camera.position.y) * 0.018;
-    camera.lookAt(0, 0, -1.8);
+    camera.position.x+=(pointerX*(isScreen?.22:.14)-camera.position.x)*.015;
+    camera.position.y+=(-pointerY*(isScreen?.14:.09)-camera.position.y)*.015;
+    camera.lookAt(0,0,-2.0);
 
-    renderer.render(scene, camera);
-
-    if (!reducedMotion) requestAnimationFrame(frame);
+    renderer.render(scene,camera);
+    if(!reducedMotion) requestAnimationFrame(renderFrame);
   }
 
-  frame();
-
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && !reducedMotion) {
-      clock.getDelta();
-    }
-  });
+  renderFrame();
 }
