@@ -649,3 +649,15 @@ input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(18,5
   .concept-choice-card{min-height:132px;padding:13px}
   .choice-card-label{font-size:1rem}
 }
+
+
+/* ===== CELEBRATION CONFETTI ===== */
+.celebration-confetti{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  z-index:10000;
+  pointer-events:none;
+  user-select:none;
+}
