@@ -26,7 +26,7 @@ $pairs = concept_pairs();
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#123A6D">
     <title>Panel del facilitador</title>
-    <link rel="stylesheet" href="../assets/css/app.css">
+    <link rel="stylesheet" href="../assets/css/app.css?v=<?= filemtime(dirname(__DIR__) . '/assets/css/app.css') ?>">
 </head>
 <body class="admin-page">
 <?php if (!$isAdmin): ?>
@@ -150,7 +150,7 @@ $pairs = concept_pairs();
         </section>
     </div>
 </main>
-<script src="../assets/js/facilitator.js"></script>
+<script src="../assets/js/facilitator.js?v=<?= filemtime(dirname(__DIR__) . '/assets/js/facilitator.js') ?>"></script>
 <?php endif; ?>
 </body>
 </html>
