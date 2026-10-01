@@ -9,7 +9,7 @@ require_once __DIR__ . '/includes/config.php';
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0B2341">
     <title>Una conexión inesperada</title>
-    <link rel="stylesheet" href="assets/css/app.css">
+    <link rel="stylesheet" href="assets/css/app.css?v=<?= filemtime(__DIR__ . '/assets/css/app.css') ?>">
 </head>
 <body class="participant-page">
 <canvas class="three-backdrop" data-three-scene="participant" aria-hidden="true"></canvas>
@@ -82,7 +82,7 @@ require_once __DIR__ . '/includes/config.php';
     </section>
 </main>
 
-<script src="assets/js/participant.js"></script>
-<script type="module" src="assets/js/three-scenes.js"></script>
+<script src="assets/js/participant.js?v=<?= filemtime(__DIR__ . '/assets/js/participant.js') ?>"></script>
+<script type="module" src="assets/js/three-scenes.js?v=<?= filemtime(__DIR__ . '/assets/js/three-scenes.js') ?>"></script>
 </body>
 </html>
