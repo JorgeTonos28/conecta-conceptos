@@ -10,15 +10,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $data = json_input();
 $token = trim((string)($data['token'] ?? ''));
+$conceptId = trim((string)($data['concept_id'] ?? ''));
 
 if ($token === '') {
     json_response(['ok' => false, 'error' => 'Sesión de participante inválida.'], 422);
 }
 
+if ($conceptId === '') {
+    json_response(['ok' => false, 'error' => 'Selecciona un concepto disponible.'], 422);
+}
+
 try {
     $selected = null;
 
-    $state = mutate_state(function (array $state) use ($token, &$selected): array {
+    $state = mutate_state(function (array $state) use ($token, $conceptId, &$selected): array {
         if ($state['revealed']) {
             throw new RuntimeException('La experiencia ya fue revelada.');
         }
@@ -41,17 +46,25 @@ try {
         }
 
         $pool = flatten_concepts($state['pair_ids']);
-        $used = array_filter(array_column($state['participants'], 'concept_id'));
-        $available = array_values(array_filter(
-            $pool,
-            static fn($item) => !in_array($item['id'], $used, true)
-        ));
+        $concept = null;
 
-        if (!$available) {
-            throw new OverflowException('No quedan tarjetas disponibles.');
+        foreach ($pool as $item) {
+            if (($item['id'] ?? '') === $conceptId) {
+                $concept = $item;
+                break;
+            }
         }
 
-        $concept = $available[random_int(0, count($available) - 1)];
+        if ($concept === null) {
+            throw new InvalidArgumentException('Ese concepto no pertenece a la experiencia actual.');
+        }
+
+        foreach ($state['participants'] as $participant) {
+            if (($participant['concept_id'] ?? null) === $conceptId) {
+                throw new RuntimeException('Ese concepto acaba de ser elegido. Escoge otro de los que siguen disponibles.');
+            }
+        }
+
         $state['participants'][$index]['pair_id'] = $concept['pair_id'];
         $state['participants'][$index]['pair_name'] = $concept['pair_name'];
         $state['participants'][$index]['concept_id'] = $concept['id'];
@@ -72,6 +85,6 @@ try {
         'state' => public_state($state),
     ]);
 } catch (Throwable $e) {
-    $status = $e instanceof RuntimeException || $e instanceof InvalidArgumentException || $e instanceof OverflowException ? 409 : 500;
-    json_response(['ok' => false, 'error' => $e->getMessage() ?: 'No se pudo seleccionar la tarjeta.'], $status);
+    $status = $e instanceof RuntimeException || $e instanceof InvalidArgumentException ? 409 : 500;
+    json_response(['ok' => false, 'error' => $e->getMessage() ?: 'No se pudo seleccionar el concepto.'], $status);
 }
