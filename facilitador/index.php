@@ -77,7 +77,7 @@ $pairs = concept_pairs();
                     <p class="eyebrow">PARTICIPANTES</p>
                     <h2>Registro en vivo</h2>
                 </div>
-                <label class="toggle-line"><input id="showConcepts" type="checkbox"> Ver conceptos</label>
+                <label class="toggle-line"><input id="showConcepts" type="checkbox"> Mostrar conceptos en panel</label>
             </div>
             <div id="participantsTable" class="participants-table"></div>
         </section>
