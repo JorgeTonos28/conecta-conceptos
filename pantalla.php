@@ -21,7 +21,7 @@ $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=14&dat
     <section id="waitingScreen" class="screen-stage waiting-stage">
         <div class="screen-copy">
             <div class="screen-badge">DINÁMICA INTERACTIVA</div>
-            <h1>Una conexión<br><em>inesperada</em></h1>
+            <h1 class="screen-title-3d" aria-label="Una conexión inesperada"><span class="title-line title-white" data-text="Una conexión">Una conexión</span><span class="title-line title-orange" data-text="inesperada">inesperada</span></h1>
             <p>Escanea el código, escribe tu primer nombre y sigue las instrucciones en tu teléfono.</p>
 
             <div class="screen-meta-row">
