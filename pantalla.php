@@ -63,7 +63,7 @@ $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=14&dat
     </section>
 </main>
 
-<script src="assets/js/screen.js?v=<?= filemtime(__DIR__ . '/assets/js/screen.js') ?>"></script>
+<script src="assets/js/confetti.js?v=<?= filemtime(__DIR__ . '/assets/js/confetti.js') ?>"></script>\n<script src="assets/js/screen.js?v=<?= filemtime(__DIR__ . '/assets/js/screen.js') ?>"></script>
 <script type="module" src="assets/js/three-scenes.js?v=<?= filemtime(__DIR__ . '/assets/js/three-scenes.js') ?>"></script>
 </body>
 </html>
