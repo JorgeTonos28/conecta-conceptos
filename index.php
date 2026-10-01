@@ -83,7 +83,7 @@ require_once __DIR__ . '/includes/config.php';
     </section>
 </main>
 
-<script src="assets/js/participant.js?v=<?= filemtime(__DIR__ . '/assets/js/participant.js') ?>"></script>
+<script src="assets/js/confetti.js?v=<?= filemtime(__DIR__ . '/assets/js/confetti.js') ?>"></script>\n<script src="assets/js/participant.js?v=<?= filemtime(__DIR__ . '/assets/js/participant.js') ?>"></script>
 <script type="module" src="assets/js/three-scenes.js?v=<?= filemtime(__DIR__ . '/assets/js/three-scenes.js') ?>"></script>
 </body>
 </html>
