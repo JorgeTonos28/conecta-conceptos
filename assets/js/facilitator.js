@@ -11,11 +11,17 @@
   const showConcepts = document.getElementById('showConcepts');
   const revealButton = document.getElementById('revealButton');
   const resetButton = document.getElementById('resetButton');
+  const restoreSetupButton = document.getElementById('restoreSetupButton');
+  const suggestPairsButton = document.getElementById('suggestPairsButton');
   const targetSelect = document.getElementById('targetSelect');
   const pairOptions = [...document.querySelectorAll('#pairOptions input[type=checkbox]')];
   const messageEl = document.getElementById('adminMessage');
+  const setupHint = document.getElementById('setupHint');
+  const selectedPairsCount = document.getElementById('selectedPairsCount');
+  const setupState = document.getElementById('setupState');
 
   let latest = null;
+  let setupHydrated = false;
 
   async function api(url, body) {
     const response = await fetch(url, {
@@ -38,7 +44,49 @@
     return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
   }
 
-  function render(data) {
+  function selectedPairIds() {
+    return pairOptions.filter(cb => cb.checked).map(cb => cb.value);
+  }
+
+  function activeMatchesDraft() {
+    if (!latest) return true;
+    const active = latest.state;
+    const selected = selectedPairIds().slice().sort();
+    const current = [...active.pair_ids].sort();
+    return Number(targetSelect.value) === Number(active.target) &&
+      selected.length === current.length &&
+      selected.every((id, index) => id === current[index]);
+  }
+
+  function updateSetupValidation() {
+    const target = Number(targetSelect.value);
+    const needed = target / 2;
+    const selected = selectedPairIds().length;
+    const valid = Number.isInteger(needed) && selected === needed;
+
+    selectedPairsCount.textContent = selected + ' / ' + needed;
+    setupHint.textContent = valid
+      ? 'Configuración lista: ' + target + ' participantes y ' + selected + ' pares conceptuales.'
+      : 'Selecciona exactamente ' + needed + ' pares conceptuales para ' + target + ' participantes.';
+
+    const dirty = latest ? !activeMatchesDraft() : false;
+    setupState.textContent = dirty ? 'Cambios sin aplicar' : 'Configuración activa';
+    setupState.classList.toggle('pending', dirty);
+
+    resetButton.disabled = !valid;
+    resetButton.textContent = dirty ? 'Aplicar configuración e iniciar' : 'Reiniciar experiencia';
+  }
+
+  function hydrateSetupFromActive(force = false) {
+    if (!latest || (setupHydrated && !force)) return;
+    const state = latest.state;
+    targetSelect.value = String(state.target);
+    pairOptions.forEach(cb => cb.checked = state.pair_ids.includes(cb.value));
+    setupHydrated = true;
+    updateSetupValidation();
+  }
+
+  function render(data, forceSetupSync = false) {
     latest = data;
     const state = data.state;
     const pub = data.public;
@@ -48,22 +96,23 @@
     statusEl.textContent = pub.revealed ? 'Revelado' : (pub.count >= pub.target ? 'Todos listos' : 'Preparando');
     sessionEl.textContent = state.session_id;
 
-    targetSelect.value = String(state.target);
-    pairOptions.forEach(cb => cb.checked = state.pair_ids.includes(cb.value));
+    hydrateSetupFromActive(forceSetupSync);
+    updateSetupValidation();
 
     revealButton.disabled = pub.revealed || pub.assigned_count < 2;
     revealButton.textContent = pub.revealed ? 'Conexiones reveladas' : 'Revelar conexiones';
 
     if (!state.participants.length) {
-      tableEl.innerHTML = '<div class="empty-state">Aún no hay participantes registrados.</div>';
+      tableEl.innerHTML = '<div class="empty-state"><strong>Esperando participantes</strong><span>Cuando alguien ingrese desde el QR aparecerá aquí.</span></div>';
       return;
     }
 
     tableEl.innerHTML = state.participants.map((p, i) => {
-      const concept = showConcepts.checked ? (p.concept_label || 'Sin elegir') : (p.concept_id ? '••••••••' : 'Sin elegir');
+      const concept = showConcepts.checked ? (p.concept_label || 'Sin elegir') : (p.concept_id ? 'Concepto oculto' : 'Sin elegir');
+      const stateClass = p.concept_id ? 'ready' : 'waiting';
       return '<div class="participant-row">' +
-        '<span class="row-number">' + (i + 1) + '</span>' +
-        '<strong>' + escapeHtml(p.name) + '</strong>' +
+        '<span class="row-number">' + String(i + 1).padStart(2, '0') + '</span>' +
+        '<div class="participant-meta"><strong>' + escapeHtml(p.name) + '</strong><small class="' + stateClass + '">' + (p.concept_id ? 'Tarjeta revelada' : 'Eligiendo tarjeta') + '</small></div>' +
         '<span class="row-concept">' + escapeHtml(concept) + '</span>' +
         '<button class="remove-button" type="button" data-id="' + escapeHtml(p.id) + '"' + (state.revealed ? ' disabled' : '') + '>Eliminar</button>' +
       '</div>';
@@ -74,9 +123,9 @@
     });
   }
 
-  async function refresh() {
+  async function refresh(forceSetupSync = false) {
     try {
-      render(await api('../api/admin-state.php'));
+      render(await api('../api/admin-state.php'), forceSetupSync);
     } catch (e) {
       msg(e.message, true);
     }
@@ -113,7 +162,7 @@
 
   resetButton.addEventListener('click', async () => {
     const target = Number(targetSelect.value);
-    const selected = pairOptions.filter(cb => cb.checked).map(cb => cb.value);
+    const selected = selectedPairIds();
     const needed = target / 2;
 
     if (selected.length !== needed) {
@@ -121,24 +170,33 @@
       return;
     }
 
-    if (!confirm('Esto borrará todos los nombres actuales y mezclará de nuevo las tarjetas. ¿Continuar?')) return;
+    const verb = activeMatchesDraft() ? 'reiniciar' : 'aplicar esta configuración e iniciar';
+    if (!confirm('¿Deseas ' + verb + ' la experiencia? Se borrarán los nombres actuales y se mezclarán nuevamente las tarjetas.')) return;
 
     try {
       await api('../api/reset.php', {csrf, target, pair_ids: selected});
-      msg('Experiencia reiniciada. Ya puedes abrir el acceso a los participantes.');
-      refresh();
+      msg('Configuración aplicada. La experiencia está limpia y lista.');
+      await refresh(true);
     } catch (e) {
       msg(e.message, true);
     }
   });
 
-  showConcepts.addEventListener('change', () => latest && render(latest));
-
-  targetSelect.addEventListener('change', () => {
-    const needed = Number(targetSelect.value) / 2;
-    pairOptions.forEach((cb, index) => cb.checked = index < needed);
+  restoreSetupButton.addEventListener('click', () => {
+    hydrateSetupFromActive(true);
+    msg('Se restauró la configuración activa.');
   });
 
-  refresh();
-  setInterval(refresh, 1200);
+  suggestPairsButton.addEventListener('click', () => {
+    const needed = Number(targetSelect.value) / 2;
+    pairOptions.forEach((cb, index) => cb.checked = index < needed);
+    updateSetupValidation();
+  });
+
+  showConcepts.addEventListener('change', () => latest && render(latest));
+  targetSelect.addEventListener('change', updateSetupValidation);
+  pairOptions.forEach(cb => cb.addEventListener('change', updateSetupValidation));
+
+  refresh(true);
+  setInterval(() => refresh(false), 1200);
 })();
